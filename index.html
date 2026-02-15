@@ -1,47 +1,785 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Valentine's Day</title>
-    <style>
-        body {
-            background-color: pink;
-            text-align: center;
-            font-family: Arial, sans-serif;
-        }
-        h1 {
-            color: red;
-        }
-        .heart {
-            width: 100px;
-            height: 100px;
-            background-color: red;
-            position: relative;
-            margin: 20px auto;
-            transform: rotate(-45deg);
-        }
-        .heart:before, .heart:after {
-            content: "";
-            width: 100px;
-            height: 100px;
-            background-color: red;
-            border-radius: 50%;
-            position: absolute;
-        }
-        .heart:before {
-            top: -50px;
-            left: 0;
-        }
-        .heart:after {
-            left: 50px;
-            top: 0;
-        }
-    </style>
+<meta charset="UTF-8">
+<title>Feliz San Valentín</title>
+<style>
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  width: 100%;
+  height: 100vh;
+  overflow: hidden;
+  background: linear-gradient(135deg, #1a0000 0%, #4a0000 25%, #8b0000 50%, #4a0000 75%, #1a0000 100%);
+  font-family: 'Georgia', serif;
+}
+
+canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: block;
+}
+
+.container {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  z-index: 10;
+}
+
+.overlay {
+  position: absolute;
+  top: 60px;
+  text-align: center;
+  color: #ffb3d9;
+  font-size: 52px;
+  font-weight: bold;
+  letter-spacing: 6px;
+  text-shadow: 0 0 30px rgba(255, 50, 150, 1), 
+               0 0 60px rgba(255, 20, 100, 0.7),
+               0 0 90px rgba(255, 0, 50, 0.4);
+  animation: fadeIn 5s ease forwards;
+  opacity: 0;
+}
+
+.heart-pulse {
+  display: inline-block;
+  animation: heartBeat 1.5s ease-in-out infinite;
+  margin: 0 15px;
+}
+
+@keyframes heartBeat {
+  0%, 100% { transform: scale(1); }
+  25% { transform: scale(1.12); }
+  50% { transform: scale(1.2); }
+  75% { transform: scale(1.12); }
+}
+
+@keyframes fadeIn {
+  to { opacity: 1; }
+}
+
+.subtitle {
+  position: absolute;
+  bottom: 80px;
+  text-align: center;
+  color: #ff69b4;
+  font-size: 24px;
+  letter-spacing: 2px;
+  text-shadow: 0 0 20px rgba(255, 105, 180, 0.8);
+  animation: fadeIn 7s ease forwards;
+  opacity: 0;
+  font-style: italic;
+}
+
+.stars-bg {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+.star {
+  position: absolute;
+  background: white;
+  border-radius: 50%;
+  animation: twinkle 4s infinite;
+}
+
+@keyframes twinkle {
+  0%, 100% { opacity: 0.2; }
+  50% { opacity: 0.8; }
+}
+</style>
 </head>
 <body>
-    <h1>Happy Valentine's Day!</h1>
-    <div class="heart"></div>
-    <p>Wishing you love and joy on this special day!</p>
-</body>
-</html>
+
+<div class="stars-bg" id="stars-bg"></div>
+
+<div class="container">
+  <div class="overlay">
+    <span class="heart-pulse">💕</span>
+    Feliz San Valentín preciosa
+    <span class="heart-pulse">💕</span>
+  </div>
+  <div class="subtitle">Te amo con todo mi corazón</div>
+</div>
+
+<canvas id="scene"></canvas>
+
+<script>
+// Crear estrellas de fondo
+const starsBg = document.getElementById('stars-bg');
+for(let i = 0; i < 50; i++) {
+  const star = document.createElement('div');
+  star.className = 'star';
+  star.style.width = Math.random() * 2 + 1 + 'px';
+  star.style.height = star.style.width;
+  star.style.left = Math.random() * 100 + '%';
+  star.style.top = Math.random() * 100 + '%';
+  star.style.animationDelay = Math.random() * 4 + 's';
+  starsBg.appendChild(star);
+}
+
+const canvas = document.getElementById('scene');
+const ctx = canvas.getContext('2d');
+
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
+
+let mouse = { x: canvas.width / 2, y: canvas.height / 2 };
+let particles = [];
+let hearts = [];
+let butterflies = [];
+let stars = [];
+let lightTrails = [];
+let flowers = [];
+let orbitalFlowers = [];
+let centralRoses = [];
+let lastFireworkTime = 0;
+
+window.addEventListener('resize', () => {
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+});
+
+document.addEventListener('mousemove', (e) => {
+  mouse.x = e.clientX;
+  mouse.y = e.clientY;
+
+  if (Math.random() > 0.8) {
+    lightTrails.push(new LightTrail(mouse.x, mouse.y));
+  }
+});
+
+class Particle {
+  constructor(x, y, vx, vy, color, type = 'normal') {
+    this.x = x;
+    this.y = y;
+    this.vx = vx;
+    this.vy = vy;
+    this.color = color;
+    this.life = 1;
+    this.decay = Math.random() * 0.008 + 0.005;
+    this.size = Math.random() * 3 + 1.5;
+    this.type = type;
+    this.rotation = Math.random() * Math.PI * 2;
+  }
+
+  update() {
+    this.x += this.vx;
+    this.y += this.vy;
+    this.rotation += 0.1;
+
+    if (this.type === 'petal') {
+      this.vy += 0.03;
+      this.vx *= 0.995;
+      this.vx += (Math.random() - 0.5) * 0.15;
+    } else if (this.type === 'sparkle') {
+      this.vy += 0.04;
+      this.vx *= 0.985;
+    } else {
+      this.vy += 0.06;
+      this.vx *= 0.99;
+    }
+
+    this.life -= this.decay;
+  }
+
+  draw() {
+    if (this.type === 'petal') {
+      ctx.save();
+      ctx.translate(this.x, this.y);
+      ctx.rotate(this.rotation);
+      ctx.globalAlpha = this.life * 0.75;
+      ctx.fillStyle = this.color;
+      ctx.beginPath();
+      ctx.ellipse(0, 0, this.size * 0.5, this.size * 0.8, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    } else if (this.type === 'sparkle') {
+      ctx.save();
+      ctx.globalAlpha = this.life * 0.6;
+      ctx.fillStyle = this.color.replace(')', `, ${this.life * 0.7})`);
+      ctx.beginPath();
+      ctx.arc(this.x, this.y, this.size * 1.2, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.globalAlpha = this.life * 0.8;
+      ctx.fillStyle = this.color.replace(')', `, ${this.life})`);
+      ctx.beginPath();
+      ctx.arc(this.x, this.y, this.size * 0.5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    } else {
+      ctx.fillStyle = this.color.replace(')', `, ${this.life * 0.85})`);
+      ctx.beginPath();
+      ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+}
+
+class Butterfly {
+  constructor(x, y) {
+    this.x = x;
+    this.y = y;
+    this.vx = (Math.random() - 0.5) * 1.2;
+    this.vy = -0.8 - Math.random() * 0.5;
+    this.life = 1;
+    this.decay = 0.003;
+    this.angle = 0;
+    this.size = Math.random() * 8 + 6;
+    this.wobble = 0;
+  }
+
+  update() {
+    this.x += this.vx;
+    this.y += this.vy;
+    this.angle += 0.2;
+    this.vy -= 0.008;
+    this.vx += (Math.random() - 0.5) * 0.08;
+    this.wobble += 0.05;
+    this.life -= this.decay;
+  }
+
+  draw() {
+    ctx.save();
+    ctx.translate(this.x, this.y);
+    ctx.globalAlpha = this.life * 0.8;
+    ctx.rotate(Math.sin(this.wobble) * 0.2);
+
+    const hue = 340 + Math.sin(this.angle) * 20;
+    ctx.fillStyle = `hsl(${hue}, 90%, 48%)`;
+
+    ctx.beginPath();
+    ctx.ellipse(-this.size / 1.8, 0, this.size / 2.2, this.size / 2.5, -0.3, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.beginPath();
+    ctx.ellipse(this.size / 1.8, 0, this.size / 2.2, this.size / 2.5, 0.3, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = '#2a1a1a';
+    ctx.beginPath();
+    ctx.ellipse(0, 0, this.size / 5, this.size / 1.8, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.restore();
+  }
+}
+
+class FloatingHeart {
+  constructor(x, y) {
+    this.x = x;
+    this.y = y;
+    this.vy = -1.5;
+    this.vx = (Math.random() - 0.5) * 1.2;
+    this.life = 1;
+    this.decay = 0.006;
+    this.size = Math.random() * 18 + 14;
+    this.rotation = Math.random() * Math.PI * 2;
+  }
+
+  update() {
+    this.x += this.vx;
+    this.y += this.vy;
+    this.vy -= 0.008;
+    this.life -= this.decay;
+    this.rotation += 0.04;
+  }
+
+  draw() {
+    ctx.save();
+    ctx.translate(this.x, this.y);
+    ctx.rotate(this.rotation);
+    ctx.globalAlpha = Math.max(0, this.life * 0.9);
+    ctx.font = `bold ${this.size}px Arial`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = `rgba(255, 20, 147, ${this.life * 0.9})`;
+    ctx.filter = `drop-shadow(0 0 ${8 * this.life}px rgba(255, 20, 147, 0.5))`;
+    ctx.fillText('❤', 0, 0);
+    ctx.restore();
+  }
+}
+
+class Star {
+  constructor(x, y) {
+    this.x = x;
+    this.y = y;
+    this.life = 1;
+    this.decay = 0.01;
+    this.size = Math.random() * 2 + 0.8;
+    this.twinkle = Math.random();
+  }
+
+  update() {
+    this.life -= this.decay;
+  }
+
+  draw() {
+    ctx.fillStyle = `rgba(255, 255, 200, ${this.life * (0.5 + Math.sin(this.twinkle) * 0.3)})`;
+    ctx.beginPath();
+    ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+    ctx.fill();
+    this.twinkle += 0.1;
+  }
+}
+
+class LightTrail {
+  constructor(x, y) {
+    this.x = x;
+    this.y = y;
+    this.life = 1;
+    this.decay = 0.07;
+    this.size = Math.random() * 5 + 3;
+    this.color = `hsl(${Math.random() * 60 + 330}, 100%, 50%)`;
+  }
+
+  update() {
+    this.life -= this.decay;
+  }
+
+  draw() {
+    ctx.save();
+    ctx.globalAlpha = this.life * 0.4;
+    ctx.fillStyle = this.color;
+    ctx.filter = `blur(1.5px)`;
+    ctx.beginPath();
+    ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+}
+
+class FloatingFlower {
+  constructor(x, y) {
+    this.x = x;
+    this.y = y;
+    this.vx = (Math.random() - 0.5) * 0.8;
+    this.vy = -0.9 - Math.random() * 0.5;
+    this.life = 1;
+    this.decay = 0.003;
+    this.size = Math.random() * 12 + 9;
+    this.rotation = Math.random() * Math.PI * 2;
+    this.petals = 6;
+    this.color = this.getRandomColor();
+  }
+
+  getRandomColor() {
+    const colors = [
+      { outer: '#ff0050', middle: '#dd0040', inner: '#aa0030' },
+      { outer: '#ff1a64', middle: '#dd1452', inner: '#bb0d42' },
+      { outer: '#ff5590', middle: '#dd3d78', inner: '#bb2d68' },
+      { outer: '#ff8fb4', middle: '#dd77a0', inner: '#bb6790' },
+      { outer: '#ffb3d9', middle: '#dd9ac7', inner: '#bb8ab7' }
+    ];
+    return colors[Math.floor(Math.random() * colors.length)];
+  }
+
+  update() {
+    this.x += this.vx;
+    this.y += this.vy;
+    this.vy -= 0.006;
+    this.vx += (Math.random() - 0.5) * 0.06;
+    this.rotation += 0.03;
+    this.life -= this.decay;
+  }
+
+  draw() {
+    ctx.save();
+    ctx.translate(this.x, this.y);
+    ctx.rotate(this.rotation);
+    ctx.globalAlpha = this.life * 0.8;
+
+    for (let i = 0; i < this.petals; i++) {
+      ctx.rotate((Math.PI * 2) / this.petals);
+      let gradient = ctx.createRadialGradient(0, -this.size / 2.2, 1, 0, -this.size / 2.2, this.size / 1.8);
+      gradient.addColorStop(0, this.color.outer);
+      gradient.addColorStop(0.7, this.color.middle);
+      gradient.addColorStop(1, this.color.inner);
+      ctx.fillStyle = gradient;
+      ctx.beginPath();
+      ctx.ellipse(0, -this.size / 2.2, this.size / 3.2, this.size / 1.6, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    ctx.fillStyle = this.color.inner;
+    ctx.beginPath();
+    ctx.arc(0, 0, this.size / 4.5, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.restore();
+  }
+}
+
+class OrbitalFlower {
+  constructor(centerX, centerY, radius, angle, size) {
+    this.centerX = centerX;
+    this.centerY = centerY;
+    this.radius = radius;
+    this.angle = angle;
+    this.size = size;
+    this.angularVelocity = 0.012 + Math.random() * 0.008;
+    this.petals = 6;
+    this.color = [
+      { outer: '#ff0050', middle: '#dd0040', inner: '#aa0030' },
+      { outer: '#ff1a64', middle: '#dd1452', inner: '#bb0d42' },
+      { outer: '#ff5590', middle: '#dd3d78', inner: '#bb2d68' },
+      { outer: '#ff8fb4', middle: '#dd77a0', inner: '#bb6790' },
+      { outer: '#ffb3d9', middle: '#dd9ac7', inner: '#bb8ab7' }
+    ][Math.floor(Math.random() * 5)];
+    this.bloom = 0;
+  }
+
+  update() {
+    this.angle += this.angularVelocity;
+    this.bloom = (Math.sin(Date.now() * 0.002 + this.angle) + 1) / 2;
+  }
+
+  draw() {
+    const x = this.centerX + Math.cos(this.angle) * this.radius;
+    const y = this.centerY + Math.sin(this.angle) * this.radius;
+
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.globalAlpha = 0.85;
+
+    for (let i = 0; i < this.petals; i++) {
+      ctx.rotate((Math.PI * 2) / this.petals);
+      let gradient = ctx.createRadialGradient(0, -this.size / 2.2, 1, 0, -this.size / 2.2, this.size / 1.8);
+      gradient.addColorStop(0, this.color.outer);
+      gradient.addColorStop(0.7, this.color.middle);
+      gradient.addColorStop(1, this.color.inner);
+      ctx.fillStyle = gradient;
+      ctx.beginPath();
+      ctx.ellipse(0, -this.size / 2.2, this.size / 3.2 * (0.85 + this.bloom * 0.15), this.size / 1.6, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    ctx.fillStyle = this.color.inner;
+    ctx.shadowColor = 'rgba(0,0,0,0.2)';
+    ctx.shadowBlur = 3;
+    ctx.beginPath();
+    ctx.arc(0, 0, this.size / 4.5, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.restore();
+  }
+}
+
+class Rose {
+  constructor(x, y, size, isOrbital = false) {
+    this.x = x;
+    this.y = y;
+    this.size = size;
+    this.angle = 0;
+    this.originalX = x;
+    this.originalY = y;
+    this.petals = 6;
+    this.color = this.randomRose();
+    this.glow = 0;
+    this.wobble = 0;
+    this.isOrbital = isOrbital;
+  }
+
+  randomRose() {
+    const colors = [
+      { outer: '#ff0050', middle: '#dd0040', inner: '#aa0030' },
+      { outer: '#ff1a64', middle: '#dd1452', inner: '#bb0d42' },
+      { outer: '#ff5590', middle: '#dd3d78', inner: '#bb2d68' },
+      { outer: '#ff8fb4', middle: '#dd77a0', inner: '#bb6790' },
+      { outer: '#ffb3d9', middle: '#dd9ac7', inner: '#bb8ab7' }
+    ];
+    return colors[Math.floor(Math.random() * colors.length)];
+  }
+
+  update() {
+    if (!this.isOrbital) {
+      const dx = mouse.x - this.x;
+      const dy = mouse.y - this.y;
+      const distance = Math.sqrt(dx * dx + dy * dy);
+
+      if (distance > 450) {
+        this.x += dx * 0.0003;
+        this.y += dy * 0.0003;
+      } else {
+        this.x += (this.originalX - this.x) * 0.008;
+        this.y += (this.originalY - this.y) * 0.008;
+      }
+    }
+
+    this.glow = Math.sin(Date.now() * 0.002 + this.originalX) * 10 + 16;
+    this.wobble = Math.sin(Date.now() * 0.003 + this.originalY) * 0.06;
+  }
+
+  draw() {
+    ctx.save();
+    ctx.translate(this.x, this.y);
+    ctx.rotate(Math.sin(this.angle + this.wobble) * 0.1);
+
+    ctx.shadowColor = 'rgba(255,0,50,0.4)';
+    ctx.shadowBlur = this.glow;
+
+    ctx.strokeStyle = '#2d5016';
+    ctx.lineWidth = this.size * 0.1;
+    ctx.beginPath();
+    ctx.moveTo(0, this.size / 3);
+    ctx.quadraticCurveTo(this.size * 0.2, this.size / 1.5, 0, this.size);
+    ctx.stroke();
+
+    for (let i = 0; i < this.petals; i++) {
+      ctx.rotate((Math.PI * 2) / this.petals);
+      let gradient = ctx.createRadialGradient(0, -this.size / 2.2, 1, 0, -this.size / 2.2, this.size / 1.8);
+      gradient.addColorStop(0, this.color.outer);
+      gradient.addColorStop(0.6, this.color.middle);
+      gradient.addColorStop(1, this.color.inner);
+      ctx.fillStyle = gradient;
+      ctx.beginPath();
+      ctx.ellipse(0, -this.size / 2.2, this.size / 3.2, this.size / 1.6, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    ctx.fillStyle = '#3a1f2e';
+    ctx.shadowColor = 'rgba(0,0,0,0.3)';
+    ctx.shadowBlur = 3;
+    ctx.beginPath();
+    ctx.arc(0, 0, this.size / 4.5, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.restore();
+    this.angle += 0.004;
+  }
+}
+
+// Inicializar rosas centrales
+const heartPoints = generateHeartShape();
+heartPoints.forEach((point) => {
+  centralRoses.push(new Rose(point.x, point.y, 26 + Math.random() * 10, false));
+});
+
+for (let i = 0; i < 14; i++) {
+  const angle = (Math.PI * 2 / 14) * i;
+  const distance = 320;
+  centralRoses.push(
+    new Rose(
+      canvas.width / 2 + Math.cos(angle) * distance,
+      canvas.height / 2 + Math.sin(angle) * distance,
+      30 + Math.random() * 8,
+      true
+    )
+  );
+}
+
+// Flores orbitales
+for (let i = 0; i < 18; i++) {
+  const angle = (Math.PI * 2 / 18) * i;
+  orbitalFlowers.push(new OrbitalFlower(canvas.width / 2, canvas.height / 2, 160, angle, 20 + Math.random() * 6));
+}
+
+function generateHeartShape() {
+  const points = [];
+  const scale = 1.4;
+  const offsetX = canvas.width / 2;
+  const offsetY = canvas.height / 2 - 20;
+
+  for (let t = 0; t < Math.PI * 2; t += 0.12) {
+    const x = 16 * Math.pow(Math.sin(t), 3);
+    const y = 13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t);
+
+    points.push({
+      x: offsetX + x * scale * 8,
+      y: offsetY - y * scale * 8
+    });
+  }
+
+  return points;
+}
+
+class Firework {
+  constructor(x, y, heartShape = false) {
+    this.x = x;
+    this.y = y;
+    this.heartShape = heartShape;
+    this.createExplosion();
+  }
+
+  createExplosion() {
+    const colors = [
+      'rgba(255,0,80',
+      'rgba(255,20,147',
+      'rgba(255,105,180',
+      'rgba(255,182,193',
+      'rgba(219,20,60',
+      'rgba(255,215,100'
+    ];
+
+    const particleCount = this.heartShape ? 80 : 100;
+
+    for (let i = 0; i < particleCount; i++) {
+      const angle = (Math.PI * 2 / particleCount) * i + (Math.random() - 0.5) * 0.3;
+      const speed = Math.random() * 5 + 2.5;
+      const color = colors[Math.floor(Math.random() * colors.length)];
+
+      particles.push(new Particle(this.x, this.y, Math.cos(angle) * speed, Math.sin(angle) * speed, color));
+
+      if (Math.random() > 0.7) {
+        particles.push(
+          new Particle(
+            this.x,
+            this.y,
+            Math.cos(angle) * speed * 0.4,
+            Math.sin(angle) * speed * 0.4,
+            'rgba(255,255,200',
+            'sparkle'
+          )
+        );
+      }
+    }
+
+    for (let i = 0; i < 8; i++) {
+      hearts.push(new FloatingHeart(this.x + (Math.random() - 0.5) * 100, this.y));
+    }
+
+    for (let i = 0; i < 4; i++) {
+      butterflies.push(new Butterfly(this.x + (Math.random() - 0.5) * 70, this.y + (Math.random() - 0.5) * 70));
+    }
+
+    for (let i = 0; i < 12; i++) {
+      stars.push(new Star(this.x + (Math.random() - 0.5) * 150, this.y + (Math.random() - 0.5) * 150));
+    }
+
+    for (let i = 0; i < 4; i++) {
+      flowers.push(new FloatingFlower(this.x + (Math.random() - 0.5) * 100, this.y));
+    }
+  }
+}
+
+function createAutomaticFirework() {
+  const x = Math.random() * canvas.width;
+  const y = Math.random() * (canvas.height * 0.65);
+  const isHeart = Math.random() > 0.35;
+  new Firework(x, y, isHeart);
+}
+
+function createPetals() {
+  const petalColors = [
+    'rgba(255,105,180',
+    'rgba(255,182,193',
+    'rgba(255,20,147',
+    'rgba(255,192,203',
+    'rgba(255,240,245'
+  ];
+
+  for (let i = 0; i < 3; i++) {
+    const x = Math.random() * canvas.width;
+    const y = -20;
+    const color = petalColors[Math.floor(Math.random() * petalColors.length)];
+
+    particles.push(
+      new Particle(
+        x,
+        y,
+        (Math.random() - 0.5) * 1,
+        Math.random() * 0.5 + 0.2,
+        color,
+        'petal'
+      )
+    );
+  }
+}
+
+function animate() {
+  // Limpiar canvas
+  const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+  gradient.addColorStop(0, 'rgba(26, 0, 0, 0.95)');
+  gradient.addColorStop(0.5, 'rgba(74, 0, 0, 0.92)');
+  gradient.addColorStop(1, 'rgba(26, 0, 0, 0.95)');
+  ctx.fillStyle = gradient;
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  // Glow central
+  const glowGradient = ctx.createRadialGradient(canvas.width / 2, canvas.height / 2, 100, canvas.width / 2, canvas.height / 2, 600);
+  glowGradient.addColorStop(0, 'rgba(255,20,147,0.12)');
+  glowGradient.addColorStop(0.5, 'rgba(255,100,180,0.06)');
+  glowGradient.addColorStop(1, 'transparent');
+  ctx.fillStyle = glowGradient;
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  // Glow del mouse
+  const mouseGlow = ctx.createRadialGradient(mouse.x, mouse.y, 15, mouse.x, mouse.y, 250);
+  mouseGlow.addColorStop(0, 'rgba(255,105,180,0.25)');
+  mouseGlow.addColorStop(1, 'transparent');
+  ctx.fillStyle = mouseGlow;
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  // Rastros de luz
+  for (let i = lightTrails.length - 1; i >= 0; i--) {
+    lightTrails[i].update();
+    lightTrails[i].draw();
+
+    if (lightTrails[i].life <= 0) {
+      lightTrails.splice(i, 1);
+    }
+  }
+
+  // Flores orbitales
+  orbitalFlowers.forEach((flower) => {
+    flower.update();
+    flower.draw();
+  });
+
+  // Rosas centrales
+  centralRoses.forEach((rose) => {
+    rose.update();
+    rose.draw();
+  });
+
+  // Partículas
+  for (let i = particles.length - 1; i >= 0; i--) {
+    particles[i].update();
+    particles[i].draw();
+
+    if (particles[i].life <= 0) {
+      particles.splice(i, 1);
+    }
+  }
+
+  // Flores flotantes
+  for (let i = flowers.length - 1; i >= 0; i--) {
+    flowers[i].update();
+    flowers[i].draw();
+
+    if (flowers[i].life <= 0) {
+      flowers.splice(i, 1);
+    }
+  }
+
+  // Corazones
+  for (let i = hearts.length - 1; i >= 0; i--) {
+    hearts[i].update();
+    hearts[i].draw();
+
+    if (hearts[i].life <= 0) {
+      hearts.splice(i, 1);
+    }
+  }
+
+  // Mariposas
+  for (let i = butterflies.length - 1; i >= 0; i--) {
+    butterflies[i].update();
+    butterflies[i].draw();
+
+    if (butterflies[i].life <= 0) {
+      butterflies.splice(i, 1);
+    
